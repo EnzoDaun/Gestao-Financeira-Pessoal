@@ -32,7 +32,7 @@ public class Main {
 
         public Categoria(String nome) {
             this.nome = nome;
-            this.id = contador++; //incrementa o ID gerado
+            this.id = contador++; // Incrementa o ID gerado
         }
 
         @Override
@@ -57,7 +57,7 @@ public class Main {
         }
     }
 
-    // dados em memória
+    // Dados em memória
     private static ArrayList<Usuario> usuarios = new ArrayList<>();
     private Usuario currentUser;
 
@@ -72,6 +72,9 @@ public class Main {
     private JLabel labelReceitas;                   // Label para exibir o total de receitas
     private JLabel labelDespesas;                   // Label para exibir o total de despesas
 
+    // Atualiza o comboBox de categorias na aba de transações
+    private JComboBox<Categoria> cbCategoriaTransacao;
+
     // Construtor
     public Main() {
         showLogin();  // Inicia a tela de login
@@ -82,7 +85,7 @@ public class Main {
         loginFrame = new JFrame("Login - Gestão Financeira Pessoal");
         loginFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         loginFrame.setSize(300, 200);
-        loginFrame.setLocationRelativeTo(null); //centraliza a janela
+        loginFrame.setLocationRelativeTo(null); // Centraliza a janela
 
         JPanel panel = new JPanel(new GridLayout(4, 1));
         JTextField txtUser = new JTextField();
@@ -106,9 +109,9 @@ public class Main {
             String senha = new String(txtPass.getPassword());
             Usuario user = autenticar(usuario, senha);
             if (user != null) {
-                currentUser = user;  //atribui o usuario como usuario atual
-                loginFrame.dispose(); //fecha a tela de login
-                showMainFrame(); //abre tela principal
+                currentUser = user;  // Atribui o usuário como atual
+                loginFrame.dispose(); // Fecha a tela de login
+                showMainFrame(); // Abre tela principal
             } else {
                 JOptionPane.showMessageDialog(loginFrame, "Usuário ou senha incorretos!");
             }
@@ -139,7 +142,7 @@ public class Main {
                 return u;
             }
         }
-        return null; //se o usuario não for encontrado retorna nulo
+        return null; // Se o usuário não for encontrado retorna nulo
     }
 
     // Tela Principal
@@ -149,17 +152,17 @@ public class Main {
         mainFrame.setSize(800, 600);
         mainFrame.setLocationRelativeTo(null);
 
-        //abas da aplicação
+        // Abas da aplicação
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.addTab("Transações", createTransacoesPanel());
         tabbedPane.addTab("Resumo", createResumoPanel());
         tabbedPane.addTab("Categorias", createCategoriasPanel());
 
-        mainFrame.add(tabbedPane); //adiciona as abas para que sejam exibidas
+        mainFrame.add(tabbedPane); // Adiciona as abas para que sejam exibidas
         mainFrame.setVisible(true);
     }
 
-    // Painel de Transações: permite adicionar e visualizar transações financeiras
+    // Painel de Transações: permite adicionar, visualizar e remover transações financeiras
     private JPanel createTransacoesPanel() {
         JPanel panel = new JPanel(new BorderLayout());
 
@@ -170,7 +173,7 @@ public class Main {
         panel.add(scrollPane, BorderLayout.CENTER);
 
         // Formulário para adicionar transação
-        JPanel formPanel = new JPanel(new GridLayout(6, 2, 5, 5));
+        JPanel formPanel = new JPanel(new GridLayout(7, 2, 5, 5));
         formPanel.add(new JLabel("Tipo:"));
         JComboBox<String> cbTipo = new JComboBox<>(new String[]{"Receita", "Despesa"});
         formPanel.add(cbTipo);
@@ -180,9 +183,10 @@ public class Main {
         formPanel.add(txtValor);
 
         formPanel.add(new JLabel("Categoria:"));
-        JComboBox<Categoria> cbCategoria = new JComboBox<>();
-        atualizarCategoriasCombo(cbCategoria);
-        formPanel.add(cbCategoria);
+        // Armazena o combo de categorias para atualizações futuras
+        cbCategoriaTransacao = new JComboBox<>();
+        atualizarCategoriasCombo(cbCategoriaTransacao);
+        formPanel.add(cbCategoriaTransacao);
 
         formPanel.add(new JLabel("Data (YYYY-MM-DD):"));
         JTextField txtData = new JTextField(LocalDate.now().toString());
@@ -192,25 +196,43 @@ public class Main {
         JTextField txtDesc = new JTextField();
         formPanel.add(txtDesc);
 
+        // Botão para adicionar transação
         JButton btnAdd = new JButton("Adicionar Transação");
         formPanel.add(btnAdd);
+        // Botão para remover transação
+        JButton btnRemover = new JButton("Remover Transação Selecionada");
+        formPanel.add(btnRemover);
+
         panel.add(formPanel, BorderLayout.SOUTH);
 
         btnAdd.addActionListener(e -> {
             try {
                 String tipo = (String) cbTipo.getSelectedItem();
                 double valor = Double.parseDouble(txtValor.getText());
-                Categoria cat = (Categoria) cbCategoria.getSelectedItem();
+                Categoria cat = (Categoria) cbCategoriaTransacao.getSelectedItem();
                 LocalDate data = LocalDate.parse(txtData.getText());
                 String desc = txtDesc.getText();
 
-                Transacao t = new Transacao(valor, cat, data, desc, tipo); //cria a transação com os dados que foram passados
-                currentUser.transacoes.add(t); //Adiciona a lista do usuario atual
+                Transacao t = new Transacao(valor, cat, data, desc, tipo);
+                currentUser.transacoes.add(t);
 
-                transacaoTableModel.addRow(new Object[]{tipo, valor, cat.nome, data.toString(), desc}); //adiciona a linha na tabela
+                transacaoTableModel.addRow(new Object[]{tipo, valor, cat.nome, data.toString(), desc});
                 atualizarResumo();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(mainFrame, "Erro ao adicionar transação: " + ex.getMessage());
+            }
+        });
+
+        btnRemover.addActionListener(e -> {
+            int selectedRow = transacaoTable.getSelectedRow();
+            if (selectedRow != -1) {
+                // Remove do modelo da tabela
+                transacaoTableModel.removeRow(selectedRow);
+                // Remove da lista do usuário
+                currentUser.transacoes.remove(selectedRow);
+                atualizarResumo();
+            } else {
+                JOptionPane.showMessageDialog(mainFrame, "Selecione uma transação para remover.");
             }
         });
 
@@ -261,6 +283,8 @@ public class Main {
                 Categoria cat = new Categoria(nome);
                 currentUser.categorias.add(cat);
                 ctgTableModel.addRow(new Object[]{cat.id, cat.nome});
+                txtCatNome.setText("");
+                atualizarCategoriasCombo(cbCategoriaTransacao);// Atualiza o comboBox na aba de transações
             }
         });
 
@@ -270,6 +294,7 @@ public class Main {
                 int id = (int) ctgTableModel.getValueAt(selectedRow, 0);
                 currentUser.categorias.removeIf(c -> c.id == id);
                 ctgTableModel.removeRow(selectedRow);
+                atualizarCategoriasCombo(cbCategoriaTransacao);
             }
         });
 
@@ -278,9 +303,11 @@ public class Main {
 
     // Atualiza o combobox de categorias na aba de transações
     private void atualizarCategoriasCombo(JComboBox<Categoria> cb) {
-        cb.removeAllItems(); // Remove itens antigos
-        for (Categoria c : currentUser.categorias) {
-            cb.addItem(c); // Adiciona cada categoria disponível do usuário
+        if (cb != null) {
+            cb.removeAllItems(); // Remove itens antigos
+            for (Categoria c : currentUser.categorias) {
+                cb.addItem(c); // Adiciona cada categoria disponível do usuário
+            }
         }
     }
 
@@ -302,7 +329,7 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        usuarios.add(new Usuario("admin", "admin")); //usuario padrão para testar
-        SwingUtilities.invokeLater(() -> new Main());     // Inicia a interface gráfica
+        usuarios.add(new Usuario("admin", "admin")); // Usuário padrão para testar
+        SwingUtilities.invokeLater(() -> new Main());  // Inicia a interface gráfica
     }
 }
