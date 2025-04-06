@@ -1,0 +1,3 @@
+-Projeto feito em Java Swing com Maven
+-JDK: 23.0.2
+-IDE: IntelliJ IDEA
