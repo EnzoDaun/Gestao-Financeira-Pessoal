@@ -1,63 +1,14 @@
 package org.example;
-
 import java.awt.*;
 import javax.swing.*;
 import javax.swing.table.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 
+// Classe principal: contem a interface e a lógica da aplicação
 public class Main {
 
-    static class Usuario {
-        String usuario;
-        String senha;
-        ArrayList<Transacao> transacoes;
-        ArrayList<Categoria> categorias;
-
-        public Usuario(String usuario, String senha) {
-            this.usuario = usuario;
-            this.senha = senha;
-            transacoes = new ArrayList<>(); // Inicializa a lista de transações
-            categorias = new ArrayList<>(); // Inicializa a lista de categorias
-
-            // Categoria default
-            categorias.add(new Categoria("Geral"));
-        }
-    }
-
-    static class Categoria {
-        private static int contador = 1;  // Contador para gerar IDs únicos para cada categoria
-        int id;
-        String nome;
-
-        public Categoria(String nome) {
-            this.nome = nome;
-            this.id = contador++; // Incrementa o ID gerado
-        }
-
-        @Override
-        public String toString() {
-            return nome;
-        }
-    }
-
-    static class Transacao {
-        double valor;
-        Categoria categoria;
-        LocalDate data;
-        String descricao;
-        String tipo; // "Receita" ou "Despesa"
-
-        public Transacao(double valor, Categoria categoria, LocalDate data, String descricao, String tipo) {
-            this.valor = valor;
-            this.categoria = categoria;
-            this.data = data;
-            this.descricao = descricao;
-            this.tipo = tipo;
-        }
-    }
-
-    // Dados em memória
+    // Dados em memória: lista de usuários cadastrados
     private static ArrayList<Usuario> usuarios = new ArrayList<>();
     private Usuario currentUser;
 
@@ -75,7 +26,7 @@ public class Main {
     // Atualiza o comboBox de categorias na aba de transações
     private JComboBox<Categoria> cbCategoriaTransacao;
 
-    // Construtor
+    // Construtor: inicia a tela de login ao instanciar a classe
     public Main() {
         showLogin();  // Inicia a tela de login
     }
@@ -132,7 +83,6 @@ public class Main {
             usuarios.add(novo);
             JOptionPane.showMessageDialog(loginFrame, "Registrado com sucesso! Faça login.");
         });
-
         loginFrame.setVisible(true);
     }
 
@@ -145,7 +95,7 @@ public class Main {
         return null; // Se o usuário não for encontrado retorna nulo
     }
 
-    // Tela Principal
+    //    Cria e exibe a tela principal da aplicação
     private void showMainFrame() {
         mainFrame = new JFrame("Gestão Financeira Pessoal - " + currentUser.usuario);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -235,7 +185,6 @@ public class Main {
                 JOptionPane.showMessageDialog(mainFrame, "Selecione uma transação para remover.");
             }
         });
-
         return panel;
     }
 
@@ -284,7 +233,7 @@ public class Main {
                 currentUser.categorias.add(cat);
                 ctgTableModel.addRow(new Object[]{cat.id, cat.nome});
                 txtCatNome.setText("");
-                atualizarCategoriasCombo(cbCategoriaTransacao);// Atualiza o comboBox na aba de transações
+                atualizarCategoriasCombo(cbCategoriaTransacao); // Atualiza o comboBox na aba de transações
             }
         });
 
@@ -297,7 +246,6 @@ public class Main {
                 atualizarCategoriasCombo(cbCategoriaTransacao);
             }
         });
-
         return panel;
     }
 
@@ -315,7 +263,7 @@ public class Main {
     private void atualizarResumo() {
         double totalReceitas = 0;
         double totalDespesas = 0;
-        for (Transacao t : currentUser.transacoes) {  // Percorre todas as transações do usuário
+        for (Transacao t : currentUser.transacoes) {// Percorre todas as transações do usuário
             if (t.tipo.equals("Receita"))
                 totalReceitas += t.valor;
             else
@@ -329,7 +277,8 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        usuarios.add(new Usuario("admin", "admin")); // Usuário padrão para testar
-        SwingUtilities.invokeLater(() -> new Main());  // Inicia a interface gráfica
+        // Usuário padrão para testes
+        usuarios.add(new Usuario("admin", "admin"));
+        SwingUtilities.invokeLater(() -> new Main());
     }
 }
