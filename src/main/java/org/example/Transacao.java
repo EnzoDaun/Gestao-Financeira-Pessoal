@@ -1,4 +1,5 @@
 package org.example;
+
 import java.time.LocalDate;
 
 // Classe que representa uma transação financeira.

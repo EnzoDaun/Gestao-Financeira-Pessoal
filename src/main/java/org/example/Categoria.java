@@ -1,15 +1,15 @@
 package org.example;
 
-// Classe categorias.
+// Classe que representa uma categoria financeira
 public class Categoria {
-    private static int contador = 1;  // Contador para gerar IDs únicos para cada categoria
-    public int id;
+    private static int contador = 1;
+    public final int id;
     public String nome;
 
-    // Construtor que atribui um ID único e define o nome da categoria
+    // Construtor da categoria. Inicializa o id automático e define o nome
     public Categoria(String nome) {
+        this.id = contador++;
         this.nome = nome;
-        this.id = contador++; // Incrementa o ID gerado
     }
 
     @Override
