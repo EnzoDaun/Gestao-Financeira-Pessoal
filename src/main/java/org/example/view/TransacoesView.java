@@ -49,7 +49,6 @@ public class TransacoesView {
         this.categoriaCtrl = categoriaCtrl;
         this.transacaoCtrl = transacaoCtrl;
     }
-
     public JPanel getPanel() {
         JPanel p = new JPanel(new BorderLayout());
 
@@ -78,16 +77,11 @@ public class TransacoesView {
 
         filtroDesc = new JTextField(10);
 
-        filtros.add(new JLabel("Tipo:"));
-        filtros.add(filtroTipo);
-        filtros.add(new JLabel("Valor:"));
-        filtros.add(filtroValor);
-        filtros.add(new JLabel("Categoria:"));
-        filtros.add(filtroCategoria);
-        filtros.add(new JLabel("Data:"));
-        filtros.add(filtroData);
-        filtros.add(new JLabel("Desc:"));
-        filtros.add(filtroDesc);
+        filtros.add(new JLabel("Tipo:"));      filtros.add(filtroTipo);
+        filtros.add(new JLabel("Valor:"));     filtros.add(filtroValor);
+        filtros.add(new JLabel("Categoria:")); filtros.add(filtroCategoria);
+        filtros.add(new JLabel("Data:"));      filtros.add(filtroData);
+        filtros.add(new JLabel("Desc:"));      filtros.add(filtroDesc);
 
         JButton btnClearFiltros = new JButton("Limpar Filtros");
         btnClearFiltros.addActionListener(e -> limparFiltros());
@@ -95,7 +89,7 @@ public class TransacoesView {
 
         p.add(filtros, BorderLayout.NORTH);
 
-        String[] colunas = {"ID", "Tipo", "Valor", "Categoria", "Data", "Descrição"};
+        String[] colunas = { "ID", "Tipo", "Valor", "Categoria", "Data", "Descrição" };
         transacaoModel = new DefaultTableModel(colunas, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
@@ -105,7 +99,8 @@ public class TransacoesView {
         transacaoTable = new JTable(transacaoModel);
         transacaoSorter = new TableRowSorter<>(transacaoModel);
         transacaoTable.setRowSorter(transacaoSorter);
-        p.add(new JScrollPane(transacaoTable), BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(transacaoTable);
+        p.add(scroll, BorderLayout.CENTER);
 
         ActionListener aoFiltrar = e -> aplicarFiltro();
         filtroTipo.addActionListener(aoFiltrar);
@@ -114,7 +109,7 @@ public class TransacoesView {
         filtroData.addActionListener(aoFiltrar);
         filtroDesc.addActionListener(aoFiltrar);
 
-        JPanel form = new JPanel(new GridLayout(6, 2, 5, 5));
+        JPanel form = new JPanel(new GridLayout(7, 2, 5, 5));
         JComboBox<String> cbTipo = new JComboBox<>(new String[]{"Receita", "Despesa"});
 
         JTextField txtValor = new JTextField();
@@ -133,21 +128,19 @@ public class TransacoesView {
         cbCategoriaTransacao = new JComboBox<>();
         recarregarTransacaoCategoriaCombo();
 
-        form.add(new JLabel("Tipo:"));
-        form.add(cbTipo);
-        form.add(new JLabel("Valor:"));
-        form.add(txtValor);
-        form.add(new JLabel("Categoria:"));
-        form.add(cbCategoriaTransacao);
-        form.add(new JLabel("Data:"));
-        form.add(txtData);
-        form.add(new JLabel("Descrição:"));
-        form.add(txtDesc);
+        form.add(new JLabel("Tipo:"));      form.add(cbTipo);
+        form.add(new JLabel("Valor:"));     form.add(txtValor);
+        form.add(new JLabel("Categoria:")); form.add(cbCategoriaTransacao);
+        form.add(new JLabel("Data:"));      form.add(txtData);
+        form.add(new JLabel("Descrição:")); form.add(txtDesc);
 
         JButton btnAdd = new JButton("Adicionar Transação");
+        JButton btnEditar = new JButton("Editar Selecionada");
         JButton btnRem = new JButton("Remover Selecionada");
-        form.add(btnAdd);
-        form.add(btnRem);
+        form.add(btnAdd); form.add(btnEditar);
+        form.add(btnRem); // campo vazio para alinhamento
+        form.add(new JLabel());
+
         p.add(form, BorderLayout.SOUTH);
 
         btnAdd.addActionListener(e -> {
@@ -169,11 +162,6 @@ public class TransacoesView {
             LocalDate d;
             try {
                 d = LocalDate.parse(txtData.getText(), BR_FORMAT);
-                if (d.isBefore(LocalDate.now())) {
-                    JOptionPane.showMessageDialog(p,
-                            "Data não pode ser anterior!", "Erro", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(p,
                         "Data inválida!", "Erro", JOptionPane.ERROR_MESSAGE);
@@ -194,21 +182,126 @@ public class TransacoesView {
             txtDesc.setText("");
         });
 
+        btnEditar.addActionListener(e -> {
+            int sel = transacaoTable.getSelectedRow();
+            if (sel < 0) {
+                JOptionPane.showMessageDialog(p,
+                        "Selecione uma transação para editar!", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            int modelIdx = transacaoTable.convertRowIndexToModel(sel);
+            Integer id = (Integer) transacaoModel.getValueAt(modelIdx, 0);
+
+            Transacao t = transacaoCtrl.listarTodos().stream()
+                    .filter(tr -> tr.getId().equals(id))
+                    .findFirst().orElse(null);
+            if (t == null) {
+                JOptionPane.showMessageDialog(p,
+                        "Transação não encontrada!", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            JPanel painelEdicao = new JPanel(new GridLayout(5, 2, 5, 5));
+            JComboBox<String> editTipo = new JComboBox<>(new String[]{"Receita", "Despesa"});
+            editTipo.setSelectedItem(t.getTipo());
+
+            JTextField editValor = new JTextField(String.format(LOCALE_BR, "%.2f", t.getValor()));
+            editValor.addKeyListener(new KeyAdapter() {
+                public void keyTyped(KeyEvent ev) {
+                    char c = ev.getKeyChar();
+                    if (!Character.isDigit(c) && c != '.' && c != ',') {
+                        ev.consume();
+                    }
+                }
+            });
+
+            JComboBox<Categoria> editCategoria = new JComboBox<>();
+            for (Categoria c : categoriaCtrl.listarPorUsuario(currentUser)) {
+                editCategoria.addItem(c);
+                if (c.getId().equals(t.getCategoria().getId())) {
+                    editCategoria.setSelectedItem(c);
+                }
+            }
+
+            JTextField editData = new JTextField(t.getData().format(BR_FORMAT));
+            JTextField editDesc = new JTextField(t.getDescricao());
+
+            painelEdicao.add(new JLabel("Tipo:"));      painelEdicao.add(editTipo);
+            painelEdicao.add(new JLabel("Valor:"));     painelEdicao.add(editValor);
+            painelEdicao.add(new JLabel("Categoria:")); painelEdicao.add(editCategoria);
+            painelEdicao.add(new JLabel("Data:"));      painelEdicao.add(editData);
+            painelEdicao.add(new JLabel("Descrição:")); painelEdicao.add(editDesc);
+
+            int opc = JOptionPane.showConfirmDialog(
+                    p,
+                    painelEdicao,
+                    "Editar Transação",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE
+            );
+            if (opc != JOptionPane.OK_OPTION) {
+                return;
+            }
+
+            String novoTipo = (String) editTipo.getSelectedItem();
+            String strValor = editValor.getText().trim();
+            String strData = editData.getText().trim();
+            String novaDesc = editDesc.getText().trim();
+            Categoria novaCat = (Categoria) editCategoria.getSelectedItem();
+
+            if (strValor.isEmpty() || strData.isEmpty() || novaDesc.isEmpty()) {
+                JOptionPane.showMessageDialog(p,
+                        "Preencha todos os campos!", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            double novoVal;
+            try {
+                novoVal = Double.parseDouble(strValor.replace(',', '.'));
+            } catch (Exception ex2) {
+                JOptionPane.showMessageDialog(p,
+                        "Valor inválido!", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            LocalDate novaData;
+            try {
+                novaData = LocalDate.parse(strData, BR_FORMAT);
+            } catch (Exception ex3) {
+                JOptionPane.showMessageDialog(p,
+                        "Data inválida!", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            try {
+                t.setTipo(novoTipo);
+                t.setValor(novoVal);
+                t.setData(novaData);
+                t.setCategoria(novaCat);
+                t.setDescricao(novaDesc);
+                transacaoCtrl.salvar(t);
+                recarregarTabela();
+            } catch (Exception ex4) {
+                JOptionPane.showMessageDialog(p,
+                        "Não foi possível salvar alterações: " + ex4.getMessage(),
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
         btnRem.addActionListener(e -> {
             int sel = transacaoTable.getSelectedRow();
             if (sel < 0) {
                 JOptionPane.showMessageDialog(p,
-                        "Selecione uma transação!", "Erro", JOptionPane.ERROR_MESSAGE);
+                        "Selecione uma transação para remover!", "Erro", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+            int modelIdx = transacaoTable.convertRowIndexToModel(sel);
+            Integer id = (Integer) transacaoModel.getValueAt(modelIdx, 0);
+
             if (JOptionPane.showConfirmDialog(p,
                     "Deseja mesmo excluir a transação?",
                     "Confirmar Exclusão",
                     JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
                 return;
             }
-            int modelIdx = transacaoTable.convertRowIndexToModel(sel);
-            Integer id = (Integer) transacaoModel.getValueAt(modelIdx, 0);
             transacaoCtrl.remover(id);
             recarregarTabela();
         });
@@ -216,7 +309,6 @@ public class TransacoesView {
         recarregarTabela();
         return p;
     }
-
     public void recarregarCategorias() {
         recarregarFiltroCategoriaCombo();
         recarregarTransacaoCategoriaCombo();

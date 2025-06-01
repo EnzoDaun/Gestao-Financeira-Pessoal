@@ -53,20 +53,27 @@ public class CategoriasView {
         ctgTable = new JTable(ctgModel);
         ctgSorter = new TableRowSorter<>(ctgModel);
         ctgTable.setRowSorter(ctgSorter);
-        p.add(new JScrollPane(ctgTable), BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(ctgTable);
+        p.add(scroll, BorderLayout.CENTER);
 
         ActionListener aoFiltrar = e -> aplicarFiltro();
         filtroCtgId.addActionListener(aoFiltrar);
         filtroCtgNome.addActionListener(aoFiltrar);
 
-        JPanel form = new JPanel(new GridLayout(2, 2, 5, 5));
+        JPanel form = new JPanel(new GridLayout(2, 3, 5, 5));
         JTextField txtCat = new JTextField();
         JButton btnAdd = new JButton("Adicionar");
+        JButton btnEditar = new JButton("Editar Selecionada");
         JButton btnRem = new JButton("Remover Selecionada");
+
         form.add(new JLabel("Nome da Categoria:"));
         form.add(txtCat);
         form.add(btnAdd);
+        form.add(btnEditar);
         form.add(btnRem);
+
+        form.add(new JLabel());
+
         p.add(form, BorderLayout.SOUTH);
 
         btnAdd.addActionListener(e -> {
@@ -82,11 +89,48 @@ public class CategoriasView {
             recarregarTabela();
         });
 
+        btnEditar.addActionListener(e -> {
+            int sel = ctgTable.getSelectedRow();
+            if (sel < 0) {
+                JOptionPane.showMessageDialog(p,
+                        "Selecione uma categoria para editar!", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            int modelIdx = ctgTable.convertRowIndexToModel(sel);
+            Integer id = (Integer) ctgModel.getValueAt(modelIdx, 0);
+            String nomeAtual = (String) ctgModel.getValueAt(modelIdx, 1);
+
+            String novoNome = JOptionPane.showInputDialog(
+                    p,
+                    "Edite o nome da categoria:",
+                    nomeAtual
+            );
+            if (novoNome == null) {
+                return;
+            }
+            novoNome = novoNome.trim();
+            if (novoNome.isEmpty()) {
+                JOptionPane.showMessageDialog(p,
+                        "O nome não pode ficar vazio!", "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            try {
+                Categoria c = categoriaCtrl.buscarPorId(id);
+                c.setNome(novoNome);
+                categoriaCtrl.salvar(c);
+                recarregarTabela();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(p,
+                        "Não foi possível editar a categoria: " + ex.getMessage(),
+                        "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
         btnRem.addActionListener(e -> {
             int sel = ctgTable.getSelectedRow();
             if (sel < 0) {
                 JOptionPane.showMessageDialog(p,
-                        "Selecione uma categoria!", "Erro", JOptionPane.ERROR_MESSAGE);
+                        "Selecione uma categoria para remover!", "Erro", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             int modelIdx = ctgTable.convertRowIndexToModel(sel);
@@ -103,7 +147,9 @@ public class CategoriasView {
                 recarregarTabela();
             } catch (IllegalStateException ex) {
                 JOptionPane.showMessageDialog(p,
-                        ex.getMessage(), "Atenção", JOptionPane.WARNING_MESSAGE);
+                        ex.getMessage(),
+                        "Atenção",
+                        JOptionPane.WARNING_MESSAGE);
             }
         });
 
@@ -112,11 +158,11 @@ public class CategoriasView {
     }
 
     private void aplicarFiltro() {
-        List<RowFilter<Object, Object>> fl = new ArrayList<>();
+        List<RowFilter<Object, Object>> filtros = new ArrayList<>();
         String idTxt = filtroCtgId.getText().trim();
         if (!idTxt.isEmpty()) {
             try {
-                fl.add(RowFilter.numberFilter(
+                filtros.add(RowFilter.numberFilter(
                         RowFilter.ComparisonType.EQUAL,
                         Integer.parseInt(idTxt), 0
                 ));
@@ -125,9 +171,9 @@ public class CategoriasView {
         }
         String nomeTxt = filtroCtgNome.getText().trim();
         if (!nomeTxt.isEmpty()) {
-            fl.add(RowFilter.regexFilter("(?i)" + nomeTxt, 1));
+            filtros.add(RowFilter.regexFilter("(?i)" + nomeTxt, 1));
         }
-        ctgSorter.setRowFilter(fl.isEmpty() ? null : RowFilter.andFilter(fl));
+        ctgSorter.setRowFilter(filtros.isEmpty() ? null : RowFilter.andFilter(filtros));
     }
 
     private void recarregarTabela() {
