@@ -9,19 +9,17 @@
         <class>org.example.model.Transacao</class>
 
         <properties>
-            <property name="jakarta.persistence.jdbc.driver"  value="org.sqlite.JDBC"/>
+            <property name="jakarta.persistence.jdbc.driver" value="org.sqlite.JDBC"/>
             <property name="jakarta.persistence.jdbc.url"
                       value="jdbc:sqlite:file:financeiro.db?busy_timeout=5000&amp;journal_mode=WAL&amp;synchronous=OFF&amp;cache=shared&amp;read_uncommitted=true"/>
 
             <property name="hibernate.dialect"
                       value="org.hibernate.community.dialect.SQLiteDialect"/>
 
-            <!-- Volta para UPDATE para recriar as tabelas -->
             <property name="hibernate.hbm2ddl.auto" value="update"/>
-
-            <property name="hibernate.show_sql"   value="true"/>
+            <property name="hibernate.show_sql" value="true"/>
             <property name="hibernate.format_sql" value="true"/>
-            <property name="hibernate.jdbc.time_zone"                  value="UTC"/>
+            <property name="hibernate.jdbc.time_zone" value="UTC"/>
             <property name="hibernate.temp.use_jdbc_metadata_defaults" value="false"/>
         </properties>
     </persistence-unit>

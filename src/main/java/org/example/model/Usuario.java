@@ -1,7 +1,9 @@
 package org.example.model;
 
 import jakarta.persistence.*;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "usuario")
@@ -16,31 +18,59 @@ public class Usuario {
     @Column(nullable = false)
     private String senha;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "usuario_id")
-    private List<Transacao> transacoes = new ArrayList<>();
-
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "usuario_id")
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Categoria> categorias = new ArrayList<>();
 
-    public Usuario() { }
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Transacao> transacoes = new ArrayList<>();
+
+    public Usuario() {
+    }
+
     public Usuario(String usuario, String senha) {
         this.usuario = usuario;
         this.senha = senha;
-        this.categorias.add(new Categoria("Geral"));
     }
 
     public static boolean senhaFormatoValido(String s) {
         return s != null && s.length() >= 6;
     }
 
-    public Integer getId() { return id; }
-    public String getUsuario() { return usuario; }
-    public void setUsuario(String usuario) { this.usuario = usuario; }
-    public String getSenha() { return senha; }
-    public void setSenha(String senha) { this.senha = senha; }
+    public Integer getId() {
+        return id;
+    }
 
-    public List<Transacao> getTransacoes() { return transacoes; }
-    public List<Categoria> getCategorias() { return categorias; }
+    public String getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(String usuario) {
+        this.usuario = usuario;
+    }
+
+    public String getSenha() {
+        return senha;
+    }
+
+    public void setSenha(String senha) {
+        this.senha = senha;
+    }
+
+    public List<Categoria> getCategorias() {
+        return categorias;
+    }
+
+    public List<Transacao> getTransacoes() {
+        return transacoes;
+    }
+
+    public void addCategoria(Categoria c) {
+        categorias.add(c);
+        c.setUsuario(this);
+    }
+
+    public void removeCategoria(Categoria c) {
+        categorias.remove(c);
+        c.setUsuario(null);
+    }
 }

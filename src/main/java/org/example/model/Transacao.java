@@ -1,6 +1,7 @@
 package org.example.model;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDate;
 
 @Entity
@@ -23,9 +24,11 @@ public class Transacao {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    public Transacao() { }
+    public Transacao() {
+    }
 
-    public Transacao(double valor, Categoria categoria, LocalDate data, String descricao, String tipo, Usuario usuario) {
+    public Transacao(double valor, Categoria categoria, LocalDate data,
+                     String descricao, String tipo, Usuario usuario) {
         this.valor = valor;
         this.categoria = categoria;
         this.data = data;
@@ -34,17 +37,55 @@ public class Transacao {
         this.usuario = usuario;
     }
 
-    public Integer getId() { return id; }
-    public double getValor() { return valor; }
-    public void setValor(double valor) { this.valor = valor; }
-    public LocalDate getData() { return data; }
-    public void setData(LocalDate data) { this.data = data; }
-    public String getDescricao() { return descricao; }
-    public void setDescricao(String descricao) { this.descricao = descricao; }
-    public String getTipo() { return tipo; }
-    public void setTipo(String tipo) { this.tipo = tipo; }
-    public Categoria getCategoria() { return categoria; }
-    public void setCategoria(Categoria categoria) { this.categoria = categoria; }
-    public Usuario getUsuario() { return usuario; }
-    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
+    public Integer getId() {
+        return id;
+    }
+
+    public double getValor() {
+        return valor;
+    }
+
+    public void setValor(double valor) {
+        this.valor = valor;
+    }
+
+    public LocalDate getData() {
+        return data;
+    }
+
+    public void setData(LocalDate data) {
+        this.data = data;
+    }
+
+    public String getDescricao() {
+        return descricao;
+    }
+
+    public void setDescricao(String descricao) {
+        this.descricao = descricao;
+    }
+
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
+
+    public Categoria getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(Categoria categoria) {
+        this.categoria = categoria;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
 }

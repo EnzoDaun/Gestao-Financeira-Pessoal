@@ -1,24 +1,16 @@
+// src/main/java/org/example/view/MainView.java
 package org.example.view;
 
 import org.example.controller.CategoriaController;
 import org.example.controller.TransacaoController;
-import org.example.model.Categoria;
-import org.example.model.Transacao;
 import org.example.model.Usuario;
 
 import javax.swing.*;
-import javax.swing.table.*;
-import javax.swing.text.DefaultFormatterFactory;
-import javax.swing.text.MaskFormatter;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
-import java.awt.event.*;
-import java.text.ParseException;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
 
 public class MainView {
     private final Usuario currentUser;
@@ -26,54 +18,35 @@ public class MainView {
     private final TransacaoController transacaoCtrl = new TransacaoController();
     private JFrame frame;
 
-    private static final DateTimeFormatter BR_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter HR_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
-    private static final Locale LOCALE_BR = new Locale("pt","BR");
-    private static final Categoria ALL_CATEGORY = new Categoria("Todas");
 
-    // Transações
-    private JTable transacaoTable;
-    private DefaultTableModel transacaoModel;
-    private TableRowSorter<TableModel> transacaoSorter;
-    private JComboBox<String> filtroTipo;
-    private JTextField filtroValor;
-    private JComboBox<Categoria> filtroCategoria;
-    private JFormattedTextField filtroData;
-    private JTextField filtroDesc;
-    private JComboBox<Categoria> cbCategoriaTransacao;
-
-    // Resumo
-    private JLabel lblReceitas, lblDespesas, lblTotal, lblUsuarioHora;
-
-    // Categorias
-    private JTable ctgTable;
-    private DefaultTableModel ctgModel;
-    private TableRowSorter<TableModel> ctgSorter;
-    private JTextField filtroCtgId, filtroCtgNome;
-
-    public MainView(Usuario u) {
-        this.currentUser = u;
+    public MainView(Usuario currentUser) {
+        this.currentUser = currentUser;
     }
 
     public void show() {
         frame = new JFrame("Gestão Financeira - " + currentUser.getUsuario());
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(900,650);
+        frame.setSize(900, 650);
         frame.setLocationRelativeTo(null);
 
         JPanel top = new JPanel(new BorderLayout());
-        lblUsuarioHora = new JLabel(currentUser.getUsuario()+" — "+LocalTime.now().format(HR_FORMAT));
-        lblUsuarioHora.setBorder(BorderFactory.createEmptyBorder(5,10,5,10));
+        JLabel lblUsuarioHora = new JLabel(
+                currentUser.getUsuario() + " — " + LocalTime.now().format(HR_FORMAT)
+        );
+        lblUsuarioHora.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         top.add(lblUsuarioHora, BorderLayout.WEST);
-        new Timer(60_000,e->lblUsuarioHora.setText(
-                currentUser.getUsuario()+" — "+LocalTime.now().format(HR_FORMAT)
-        )).start();
+
+        new javax.swing.Timer(60_000, e -> lblUsuarioHora.setText(
+                currentUser.getUsuario() + " — " + LocalTime.now().format(HR_FORMAT))
+        ).start();
+
         JButton btnLogout = new JButton("Logout");
-        btnLogout.addActionListener(e->{
+        btnLogout.addActionListener(e -> {
             if (JOptionPane.showConfirmDialog(frame,
                     "Deseja mesmo sair do sistema?",
                     "Confirmar Logout",
-                    JOptionPane.YES_NO_OPTION)==JOptionPane.YES_OPTION) {
+                    JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                 frame.dispose();
                 new LoginView().show();
             }
@@ -82,342 +55,26 @@ public class MainView {
         frame.add(top, BorderLayout.NORTH);
 
         JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("Transações", createTransacoesPanel());
-        tabs.addTab("Resumo",     createResumoPanel());
-        tabs.addTab("Categorias", createCategoriasPanel());
-        frame.add(tabs, BorderLayout.CENTER);
 
-        frame.setVisible(true);
-    }
+        TransacoesView transacoesView = new TransacoesView(currentUser, categoriaCtrl, transacaoCtrl);
+        ResumoView resumoView = new ResumoView(currentUser, transacaoCtrl);
+        CategoriasView categoriasView = new CategoriasView(currentUser, categoriaCtrl);
 
-    private JPanel createTransacoesPanel() {
-        JPanel p = new JPanel(new BorderLayout());
+        tabs.addTab("Transações", transacoesView.getPanel());
+        tabs.addTab("Resumo", resumoView.getPanel());
+        tabs.addTab("Categorias", categoriasView.getPanel());
 
-        // --- filtros ---
-        JPanel f = new JPanel(new FlowLayout(FlowLayout.LEFT,5,5));
-        filtroTipo = new JComboBox<>(new String[]{"Todas","Receita","Despesa"});
-        filtroValor = new JTextField(8);
-        filtroValor.addKeyListener(new KeyAdapter(){
-            public void keyTyped(KeyEvent e){
-                char c = e.getKeyChar();
-                if(!Character.isDigit(c) && c!='.' && c!=',' && c!=KeyEvent.VK_BACK_SPACE)
-                    e.consume();
-            }
-        });
-        filtroCategoria = new JComboBox<>(); atualizarCategoriasComboFiltro(filtroCategoria);
-        try {
-            MaskFormatter mf = new MaskFormatter("##/##/####");
-            mf.setPlaceholderCharacter('_');
-            filtroData = new JFormattedTextField(new DefaultFormatterFactory(mf));
-        } catch(ParseException ex){
-            filtroData = new JFormattedTextField();
-        }
-        filtroDesc = new JTextField(10);
-
-        f.add(new JLabel("Tipo:"));      f.add(filtroTipo);
-        f.add(new JLabel("Valor:"));     f.add(filtroValor);
-        f.add(new JLabel("Categoria:")); f.add(filtroCategoria);
-        f.add(new JLabel("Data:"));      f.add(filtroData);
-        f.add(new JLabel("Desc:"));      f.add(filtroDesc);
-        JButton btnClearFiltros = new JButton("Limpar Filtros");
-        btnClearFiltros.addActionListener(e->{
-            filtroTipo.setSelectedIndex(0);
-            filtroValor.setText("");
-            filtroCategoria.setSelectedItem(ALL_CATEGORY);
-            filtroData.setText("");
-            filtroDesc.setText("");
-            transacaoSorter.setRowFilter(null);
-        });
-        f.add(btnClearFiltros);
-        p.add(f, BorderLayout.NORTH);
-
-        // --- tabela de transações (com coluna ID) ---
-        String[] cols = {"ID","Tipo","Valor","Categoria","Data","Descrição"};
-        transacaoModel = new DefaultTableModel(cols,0){
-            public boolean isCellEditable(int r,int c){return false;}
-        };
-        transacaoTable = new JTable(transacaoModel);
-        transacaoSorter = new TableRowSorter<>(transacaoModel);
-        transacaoTable.setRowSorter(transacaoSorter);
-        p.add(new JScrollPane(transacaoTable), BorderLayout.CENTER);
-
-        ActionListener filtrarTrans = e->aplicarFiltroTransacoes();
-        filtroTipo.addActionListener(filtrarTrans);
-        filtroValor.addActionListener(filtrarTrans);
-        filtroCategoria.addActionListener(filtrarTrans);
-        filtroData.addActionListener(filtrarTrans);
-        filtroDesc.addActionListener(filtrarTrans);
-
-        // --- formulário de nova transação ---
-        JPanel form = new JPanel(new GridLayout(6,2,5,5));
-        JComboBox<String> cbTipo = new JComboBox<>(new String[]{"Receita","Despesa"});
-        JTextField txtValor = new JTextField();
-        txtValor.addKeyListener(new KeyAdapter(){
-            public void keyTyped(KeyEvent e){
-                char c = e.getKeyChar();
-                if(!Character.isDigit(c) && c!='.' && c!=',')
-                    e.consume();
-            }
-        });
-        JTextField txtData = new JTextField(LocalDate.now().format(BR_FORMAT));
-        JTextField txtDesc = new JTextField();
-        cbCategoriaTransacao = new JComboBox<>();
-        atualizarCategoriasComboTransacao(cbCategoriaTransacao);
-
-        form.add(new JLabel("Tipo:"));      form.add(cbTipo);
-        form.add(new JLabel("Valor:"));     form.add(txtValor);
-        form.add(new JLabel("Categoria:")); form.add(cbCategoriaTransacao);
-        form.add(new JLabel("Data:"));      form.add(txtData);
-        form.add(new JLabel("Descrição:")); form.add(txtDesc);
-
-        JButton btnAddTrans = new JButton("Adicionar Transação");
-        JButton btnRemTrans = new JButton("Remover Selecionada");
-        form.add(btnAddTrans); form.add(btnRemTrans);
-        p.add(form, BorderLayout.SOUTH);
-
-        btnAddTrans.addActionListener(e->{
-            if(txtValor.getText().isEmpty()||txtData.getText().isEmpty()||txtDesc.getText().isEmpty()){
-                JOptionPane.showMessageDialog(frame,"Preencha todos os campos!","Erro",JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            double val;
-            try { val = Double.parseDouble(txtValor.getText().replace(',','.')); }
-            catch(Exception ex){
-                JOptionPane.showMessageDialog(frame,"Valor inválido!","Erro",JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            LocalDate d;
-            try {
-                d = LocalDate.parse(txtData.getText(), BR_FORMAT);
-                if(d.isBefore(LocalDate.now())){
-                    JOptionPane.showMessageDialog(frame,"Data não pode ser passada!","Erro",JOptionPane.ERROR_MESSAGE);
-                    return;
+        tabs.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                int idx = tabs.getSelectedIndex();
+                if (idx == 0) {
+                    transacoesView.recarregarCategorias();
                 }
-            } catch(Exception ex){
-                JOptionPane.showMessageDialog(frame,"Data inválida!","Erro",JOptionPane.ERROR_MESSAGE);
-                return;
             }
-            Transacao t = new Transacao(
-                    val,
-                    (Categoria)cbCategoriaTransacao.getSelectedItem(),
-                    d,
-                    txtDesc.getText(),
-                    (String)cbTipo.getSelectedItem(),
-                    currentUser
-            );
-            transacaoCtrl.salvar(t);
-            loadTransacoes();
-            txtValor.setText("");
-            txtDesc.setText("");
         });
 
-        btnRemTrans.addActionListener(e->{
-            int sel = transacaoTable.getSelectedRow();
-            if(sel<0){
-                JOptionPane.showMessageDialog(frame,"Selecione uma transação!","Erro",JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            if(JOptionPane.showConfirmDialog(frame,
-                    "Deseja mesmo excluir a transação?",
-                    "Confirmar Exclusão",
-                    JOptionPane.YES_NO_OPTION
-            ) != JOptionPane.YES_OPTION) return;
-            int modelIdx = transacaoTable.convertRowIndexToModel(sel);
-            Integer id = (Integer)transacaoModel.getValueAt(modelIdx, 0);
-            transacaoCtrl.remover(id);
-            loadTransacoes();
-        });
-
-        loadTransacoes();
-        return p;
-    }
-
-    private void aplicarFiltroTransacoes(){
-        List<RowFilter<Object,Object>> filtros = new ArrayList<>();
-        String ft = (String)filtroTipo.getSelectedItem();
-        if(!"Todas".equals(ft)) filtros.add(RowFilter.regexFilter("^"+ft+"$",1));
-
-        String fv = filtroValor.getText().trim();
-        if(!fv.isEmpty()){
-            fv = fv.replace(".", "\\.").replace(",", "\\.");
-            filtros.add(RowFilter.regexFilter(fv,2));
-        }
-
-        Categoria fc = (Categoria)filtroCategoria.getSelectedItem();
-        if(fc!=null && fc!=ALL_CATEGORY) filtros.add(RowFilter.regexFilter("^"+fc.getNome()+"$",3));
-
-        String fd = filtroData.getText();
-        if(fd!=null && !fd.contains("_")) filtros.add(RowFilter.regexFilter("^"+fd+"$",4));
-
-        String fdesc = filtroDesc.getText().trim();
-        if(!fdesc.isEmpty()) filtros.add(RowFilter.regexFilter("(?i)"+fdesc,5));
-
-        transacaoSorter.setRowFilter(filtros.isEmpty() ? null : RowFilter.andFilter(filtros));
-    }
-
-    private void loadTransacoes(){
-        transacaoModel.setRowCount(0);
-        for(Transacao t : transacaoCtrl.listarTodos()){
-            if(!t.getUsuario().getId().equals(currentUser.getId())) continue;
-            transacaoModel.addRow(new Object[]{
-                    t.getId(),
-                    t.getTipo(),
-                    String.format(LOCALE_BR,"%.2f",t.getValor()),
-                    t.getCategoria().getNome(),
-                    t.getData().format(BR_FORMAT),
-                    t.getDescricao()
-            });
-        }
-    }
-
-    private JPanel createResumoPanel(){
-        JPanel p = new JPanel(new BorderLayout());
-        lblReceitas = new JLabel("Total Receitas: 0.00");
-        lblDespesas = new JLabel("Total Despesas: 0.00");
-        lblTotal    = new JLabel("Saldo Total: 0.00");
-        Font fnt = lblTotal.getFont().deriveFont(Font.BOLD, lblTotal.getFont().getSize()+2f);
-        lblReceitas.setFont(fnt);
-        lblDespesas.setFont(fnt);
-        lblTotal.setFont(fnt);
-
-        JPanel info = new JPanel(new GridLayout(3,1,5,5));
-        info.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-        info.add(lblReceitas);
-        info.add(lblDespesas);
-        info.add(lblTotal);
-        p.add(info, BorderLayout.CENTER);
-
-        JButton btnAtual = new JButton("Atualizar Resumo");
-        btnAtual.addActionListener(e->atualizarResumo());
-        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        pnl.add(btnAtual);
-        p.add(pnl, BorderLayout.SOUTH);
-        return p;
-    }
-
-    private void atualizarResumo(){
-        double r=0, d=0;
-        for(Transacao t : transacaoCtrl.listarTodos()){
-            if(!t.getUsuario().getId().equals(currentUser.getId())) continue;
-            if("Receita".equals(t.getTipo())) r+=t.getValor();
-            else d+=t.getValor();
-        }
-        lblReceitas.setText("Total Receitas: " + String.format(LOCALE_BR,"R$ %.2f", r));
-        lblDespesas.setText("Total Despesas: " + String.format(LOCALE_BR,"R$ %.2f", d));
-        lblTotal   .setText("Saldo Total:   " + String.format(LOCALE_BR,"R$ %.2f", r-d));
-    }
-
-    private JPanel createCategoriasPanel(){
-        JPanel p = new JPanel(new BorderLayout());
-
-        // --- filtros ---
-        JPanel f = new JPanel(new FlowLayout(FlowLayout.LEFT,5,5));
-        filtroCtgId   = new JTextField(5);
-        filtroCtgNome = new JTextField(10);
-        f.add(new JLabel("ID:"));   f.add(filtroCtgId);
-        f.add(new JLabel("Nome:")); f.add(filtroCtgNome);
-        JButton btnClearCtg = new JButton("Limpar Filtros");
-        btnClearCtg.addActionListener(e->{
-            filtroCtgId.setText("");
-            filtroCtgNome.setText("");
-            ctgSorter.setRowFilter(null);
-        });
-        f.add(btnClearCtg);
-        p.add(f, BorderLayout.NORTH);
-
-        // --- tabela de categorias ---
-        ctgModel = new DefaultTableModel(new Object[]{"ID","Nome"},0);
-        ctgTable = new JTable(ctgModel);
-        ctgSorter = new TableRowSorter<>(ctgModel);
-        ctgTable.setRowSorter(ctgSorter);
-        p.add(new JScrollPane(ctgTable), BorderLayout.CENTER);
-
-        ActionListener filCtg = e->{
-            List<RowFilter<Object,Object>> fl = new ArrayList<>();
-            String idTxt = filtroCtgId.getText().trim();
-            if(!idTxt.isEmpty()){
-                try {
-                    fl.add(RowFilter.numberFilter(RowFilter.ComparisonType.EQUAL,
-                            Integer.parseInt(idTxt), 0));
-                } catch(Exception ignore){}
-            }
-            String nomeTxt = filtroCtgNome.getText().trim();
-            if(!nomeTxt.isEmpty()){
-                fl.add(RowFilter.regexFilter("(?i)"+nomeTxt, 1));
-            }
-            ctgSorter.setRowFilter(fl.isEmpty()?null:RowFilter.andFilter(fl));
-        };
-        filtroCtgId.addActionListener(filCtg);
-        filtroCtgNome.addActionListener(filCtg);
-
-        // --- formulário de categorias ---
-        JPanel form = new JPanel(new GridLayout(2,2,5,5));
-        JTextField txtCat = new JTextField();
-        JButton btnAddCtg = new JButton("Adicionar");
-        JButton btnRemCtg = new JButton("Remover Selecionada");
-        form.add(new JLabel("Nome da Categoria:")); form.add(txtCat);
-        form.add(btnAddCtg); form.add(btnRemCtg);
-        p.add(form, BorderLayout.SOUTH);
-
-        btnAddCtg.addActionListener(e->{
-            String nome = txtCat.getText().trim();
-            if(nome.isEmpty()){
-                JOptionPane.showMessageDialog(frame,
-                        "Preencha o nome da categoria!",
-                        "Erro", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            categoriaCtrl.salvar(new Categoria(nome));
-            txtCat.setText("");
-            loadCategorias();
-            // atualiza combos de categoria em transações
-            atualizarCategoriasComboFiltro(filtroCategoria);
-            atualizarCategoriasComboTransacao(cbCategoriaTransacao);
-        });
-
-        btnRemCtg.addActionListener(e->{
-            int sel = ctgTable.getSelectedRow();
-            if(sel<0){
-                JOptionPane.showMessageDialog(frame,
-                        "Selecione uma categoria!",
-                        "Erro", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            if(JOptionPane.showConfirmDialog(frame,
-                    "Deseja mesmo excluir a categoria?",
-                    "Confirmar Exclusão",
-                    JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
-            int idx = ctgTable.convertRowIndexToModel(sel);
-            Integer id = (Integer)ctgModel.getValueAt(idx,0);
-            categoriaCtrl.remover(id);
-            loadCategorias();
-            atualizarCategoriasComboFiltro(filtroCategoria);
-            atualizarCategoriasComboTransacao(cbCategoriaTransacao);
-        });
-
-        loadCategorias();
-        return p;
-    }
-
-    private void loadCategorias(){
-        ctgModel.setRowCount(0);
-        for(Categoria c : categoriaCtrl.listarTodos()){
-            ctgModel.addRow(new Object[]{c.getId(), c.getNome()});
-        }
-    }
-
-    private void atualizarCategoriasComboFiltro(JComboBox<Categoria> cb){
-        cb.removeAllItems();
-        cb.addItem(ALL_CATEGORY);
-        for(Categoria c : categoriaCtrl.listarTodos()){
-            cb.addItem(c);
-        }
-    }
-
-    private void atualizarCategoriasComboTransacao(JComboBox<Categoria> cb){
-        cb.removeAllItems();
-        for(Categoria c : categoriaCtrl.listarTodos()){
-            cb.addItem(c);
-        }
+        frame.add(tabs, BorderLayout.CENTER);
+        frame.setVisible(true);
     }
 }

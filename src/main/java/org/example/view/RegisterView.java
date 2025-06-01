@@ -1,13 +1,19 @@
 package org.example.view;
 
+import org.example.controller.CategoriaController;
 import org.example.controller.UsuarioController;
+import org.example.model.Categoria;
+import org.example.model.Usuario;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import javax.swing.SwingWorker;
 
 public class RegisterView {
     private final UsuarioController usuarioCtrl = new UsuarioController();
+    private final CategoriaController categoriaCtrl = new CategoriaController();
     private JFrame frame;
 
     public void show(JFrame parent) {
@@ -23,9 +29,12 @@ public class RegisterView {
         JTextField txtUser = new JTextField(15);
         JPasswordField txtPass = new JPasswordField(15);
         JPasswordField txtPassConf = new JPasswordField(15);
-        pnl.add(new JLabel("Usuário:"));       pnl.add(txtUser);
-        pnl.add(new JLabel("Senha:"));         pnl.add(txtPass);
-        pnl.add(new JLabel("Confirmar Senha:")); pnl.add(txtPassConf);
+        pnl.add(new JLabel("Usuário:"));
+        pnl.add(txtUser);
+        pnl.add(new JLabel("Senha:"));
+        pnl.add(txtPass);
+        pnl.add(new JLabel("Confirmar Senha:"));
+        pnl.add(txtPassConf);
         content.add(pnl);
         content.add(Box.createVerticalStrut(10));
 
@@ -39,8 +48,8 @@ public class RegisterView {
         frame.setVisible(true);
 
         btnRegister.addActionListener(e -> {
-            String u  = txtUser.getText().trim();
-            String s  = new String(txtPass.getPassword());
+            String u = txtUser.getText().trim();
+            String s = new String(txtPass.getPassword());
             String sc = new String(txtPassConf.getPassword());
 
             if (u.isEmpty() || s.isEmpty() || sc.isEmpty()) {
@@ -55,25 +64,31 @@ public class RegisterView {
                         JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            if (!org.example.model.Usuario.senhaFormatoValido(s)) {
+            if (!Usuario.senhaFormatoValido(s)) {
                 JOptionPane.showMessageDialog(frame,
                         "Senha deve ter ao menos 6 caracteres!", "Erro",
                         JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            // registrar em background para não travar / bloquear o DB
             btnRegister.setEnabled(false);
-            new SwingWorker<Void,Void>() {
+
+            new SwingWorker<Void, Void>() {
                 @Override
-                protected Void doInBackground() {
+                protected Void doInBackground() throws Exception {
                     usuarioCtrl.registrar(u, s);
                     return null;
                 }
+
                 @Override
                 protected void done() {
                     try {
-                        get(); // força Propagation de exceções
+                        get();
+                        Usuario novo = usuarioCtrl.autenticar(u, s);
+                        if (novo != null) {
+                            Categoria geral = new Categoria("Geral", novo);
+                            categoriaCtrl.salvar(geral);
+                        }
                         JOptionPane.showMessageDialog(frame,
                                 "Registrado com sucesso!", "Sucesso",
                                 JOptionPane.INFORMATION_MESSAGE);
@@ -81,7 +96,7 @@ public class RegisterView {
                         parent.setEnabled(true);
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(frame,
-                                "Usuário '" + u + "' já existe!", "Erro",
+                                "Não foi possível registrar: usuário já existe ou erro no BD!", "Erro",
                                 JOptionPane.ERROR_MESSAGE);
                         btnRegister.setEnabled(true);
                     }

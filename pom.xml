@@ -17,7 +17,6 @@
     </properties>
 
     <dependencies>
-        <!-- Hibernate / JPA -->
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
