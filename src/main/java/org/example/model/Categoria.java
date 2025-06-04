@@ -1,9 +1,11 @@
+// src/main/java/org/example/model/Categoria.java
 package org.example.model;
 
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "categoria", uniqueConstraints = @UniqueConstraint(columnNames = {"nome", "usuario_id"}))
+@Table(name = "categoria",
+        uniqueConstraints = {@UniqueConstraint(columnNames = {"nome", "usuario_id"})})
 public class Categoria {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -12,12 +14,11 @@ public class Categoria {
     @Column(nullable = false)
     private String nome;
 
-    @ManyToOne(optional = false)
+    @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    public Categoria() {
-    }
+    public Categoria() { }
 
     public Categoria(String nome, Usuario usuario) {
         this.nome = nome;

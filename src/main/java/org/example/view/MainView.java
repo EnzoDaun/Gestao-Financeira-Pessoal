@@ -3,25 +3,31 @@ package org.example.view;
 
 import org.example.controller.CategoriaController;
 import org.example.controller.TransacaoController;
+import org.example.controller.TransacaoViewController;
 import org.example.model.Usuario;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Janela principal com abas: Transações, Resumo e Categorias.
+ * – Cada aba conversa com exatamente um Controller.
+ * – Passamos a mesma instância de TransacoesView para a aba de Categorias,
+ *   de modo que, ao adicionar/remover categoria, ela possa recarregar imediatamente
+ *   os combos daquela View de Transações.
+ */
 public class MainView {
     private final Usuario currentUser;
-    private final CategoriaController categoriaCtrl = new CategoriaController();
-    private final TransacaoController transacaoCtrl = new TransacaoController();
     private JFrame frame;
 
-    private static final DateTimeFormatter HR_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    private TransacoesView transacoesView;
+    private ResumoView     resumoView;
+    private CategoriasView categoriasView;
 
-    public MainView(Usuario currentUser) {
-        this.currentUser = currentUser;
+    public MainView(Usuario u) {
+        this.currentUser = u;
     }
 
     public void show() {
@@ -30,15 +36,21 @@ public class MainView {
         frame.setSize(900, 650);
         frame.setLocationRelativeTo(null);
 
+        // === Painel superior com usuário e relógio e botão Logout ===
         JPanel top = new JPanel(new BorderLayout());
         JLabel lblUsuarioHora = new JLabel(
-                currentUser.getUsuario() + " — " + LocalTime.now().format(HR_FORMAT)
+                currentUser.getUsuario() + " — " +
+                        LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
         );
         lblUsuarioHora.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         top.add(lblUsuarioHora, BorderLayout.WEST);
 
-        new javax.swing.Timer(60_000, e -> lblUsuarioHora.setText(
-                currentUser.getUsuario() + " — " + LocalTime.now().format(HR_FORMAT))
+        // Atualiza o relógio a cada minuto
+        new javax.swing.Timer(60_000, e ->
+                lblUsuarioHora.setText(
+                        currentUser.getUsuario() + " — " +
+                                LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+                )
         ).start();
 
         JButton btnLogout = new JButton("Logout");
@@ -54,23 +66,33 @@ public class MainView {
         top.add(btnLogout, BorderLayout.EAST);
         frame.add(top, BorderLayout.NORTH);
 
+        // === Abas principais ===
         JTabbedPane tabs = new JTabbedPane();
 
-        TransacoesView transacoesView = new TransacoesView(currentUser, categoriaCtrl, transacaoCtrl);
-        ResumoView resumoView = new ResumoView(currentUser, transacaoCtrl);
-        CategoriasView categoriasView = new CategoriasView(currentUser, categoriaCtrl);
-
+        // 1) Aba Transações → usa TransacaoViewController e TransacoesView
+        TransacaoViewController txViewController = new TransacaoViewController();
+        transacoesView = new TransacoesView(currentUser, txViewController);
         tabs.addTab("Transações", transacoesView.getPanel());
+
+        // 2) Aba Resumo → usa TransacaoController e ResumoView
+        resumoView = new ResumoView(currentUser, new TransacaoController());
         tabs.addTab("Resumo", resumoView.getPanel());
+
+        // 3) Aba Categorias → usa CategoriaController e CategoriasView.
+        //    Passamos a mesma instância de transacoesView como terceiro argumento.
+        categoriasView = new CategoriasView(
+                currentUser,
+                new CategoriaController(),
+                transacoesView
+        );
         tabs.addTab("Categorias", categoriasView.getPanel());
 
-        tabs.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                int idx = tabs.getSelectedIndex();
-                if (idx == 0) {
-                    transacoesView.recarregarCategorias();
-                }
+        // Quando o usuário voltar para a aba “Transações”, recarregamos tudo:
+        tabs.addChangeListener(evt -> {
+            if (tabs.getSelectedComponent() == transacoesView.getPanel()) {
+                transacoesView.recarregarFiltroCategoriaCombo();
+                transacoesView.recarregarTransacaoCategoriaCombo();
+                transacoesView.recarregarTabela();
             }
         });
 

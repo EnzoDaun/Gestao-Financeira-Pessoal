@@ -1,55 +1,57 @@
+// src/main/java/org/example/controller/CategoriaController.java
 package org.example.controller;
 
 import org.example.model.Categoria;
-import org.example.model.Transacao;
 import org.example.model.Usuario;
-import org.example.model.dao.ICategoriaDAO;
 import org.example.model.dao.CategoriaDAOImpl;
+import org.example.model.dao.ICategoriaDAO;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
+/**
+ * Controller de Categorias:
+ * – Usa apenas ICategoriaDAO (implementação CategoriaDAOImpl).
+ * – Métodos para salvar, editar e remover categorias, além de buscar por ID e listar todas.
+ */
 public class CategoriaController {
     private final ICategoriaDAO dao;
-    private final TransacaoController transacaoCtrl;
 
     public CategoriaController() {
         this.dao = new CategoriaDAOImpl();
-        this.transacaoCtrl = new TransacaoController();
     }
 
+    /** Insere uma nova categoria no banco. */
     public void salvar(Categoria c) {
-        dao.salvar(c);
+        dao.save(c);
     }
 
-    public void remover(Integer categoriaId, Usuario currentUser) {
-        Categoria c = dao.findById(categoriaId);
-        if (c == null || !c.getUsuario().getId().equals(currentUser.getId())) {
-            throw new IllegalStateException("Categoria não encontrada para este usuário.");
+    /** Edita (atualiza) uma categoria existente. */
+    public void editarCategoria(Categoria c) {
+        dao.update(c);
+    }
+
+    /**
+     * Remove a categoria de ID `id`, somente se ela pertencer ao usuário `currentUser`.
+     * Se nenhuma linha for removida, lança IllegalStateException.
+     */
+    public void remover(Integer id, Usuario currentUser) {
+        int rows = dao.deleteByIdAndUser(id, currentUser.getId());
+        if (rows == 0) {
+            throw new IllegalStateException(
+                    "Não foi possível remover: ou a categoria não existe ou não pertence a este usuário."
+            );
         }
-
-        List<Transacao> todasTransacoes = transacaoCtrl.listarTodos();
-        for (Transacao t : todasTransacoes) {
-            if (t.getCategoria() != null &&
-                    t.getCategoria().getId() != null &&
-                    t.getCategoria().getId().equals(categoriaId)) {
-                throw new IllegalStateException(
-                        "Não é possível excluir a categoria pois há transações vinculadas a ela."
-                );
-            }
-        }
-
-        dao.remover(categoriaId);
     }
 
-    public List<Categoria> listarPorUsuario(Usuario currentUser) {
-        return dao.findAll().stream()
-                .filter(c -> c.getUsuario() != null &&
-                        c.getUsuario().getId().equals(currentUser.getId()))
-                .collect(Collectors.toList());
+    /** Retorna todas as categorias do banco; a View filtra pelo usuário. */
+    public List<Categoria> listarTodos() {
+        return dao.findAll();
     }
 
-    public Categoria buscarPorId(Integer id) {
+    /**
+     * Busca e retorna a Categoria de ID `id`, ou null se não existir.
+     */
+    public Categoria findById(Integer id) {
         return dao.findById(id);
     }
 }

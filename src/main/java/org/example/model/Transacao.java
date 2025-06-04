@@ -1,3 +1,4 @@
+// src/main/java/org/example/model/Transacao.java
 package org.example.model;
 
 import jakarta.persistence.*;
@@ -11,10 +12,17 @@ public class Transacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(nullable = false)
     private double valor;
+
+    @Column(nullable = false)
     private LocalDate data;
+
+    @Column(nullable = false)
     private String descricao;
-    private String tipo;
+
+    @Column(nullable = false)
+    private String tipo; // “Receita” ou “Despesa”
 
     @ManyToOne
     @JoinColumn(name = "categoria_id", nullable = false)
@@ -24,11 +32,11 @@ public class Transacao {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    public Transacao() {
-    }
+    public Transacao() { }
 
-    public Transacao(double valor, Categoria categoria, LocalDate data,
-                     String descricao, String tipo, Usuario usuario) {
+    public Transacao(double valor, Categoria categoria,
+                     LocalDate data, String descricao,
+                     String tipo, Usuario usuario) {
         this.valor = valor;
         this.categoria = categoria;
         this.data = data;

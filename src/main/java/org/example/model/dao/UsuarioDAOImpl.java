@@ -1,49 +1,61 @@
+// src/main/java/org/example/model/dao/UsuarioDAOImpl.java
 package org.example.model.dao;
 
+import jakarta.persistence.TypedQuery;
 import org.example.model.Usuario;
 import org.example.util.HibernateUtil;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
 import java.util.List;
 
+/**
+ * Implementação de IUsuarioDAO. Garante:
+ * - registro com GenericDAO.save(...)
+ * - autenticação via query
+ * - catch nos blocos JPA
+ */
 public class UsuarioDAOImpl implements IUsuarioDAO {
     private final GenericDAO<Usuario, Integer> generic = new GenericDAO<>(Usuario.class);
 
     @Override
-    public void salvar(Usuario usuario) {
-        if (usuario.getId() == null) {
-            generic.save(usuario);
-        } else {
-            generic.update(usuario);
-        }
+    public void save(Usuario u) {
+        generic.save(u);
     }
 
     @Override
-    public void remover(Integer id) {
+    public void update(Usuario u) {
+        generic.update(u);
+    }
+
+    @Override
+    public void delete(Integer id) {
         generic.delete(id);
     }
 
     @Override
-    public List<Usuario> listarTodos() {
-        return generic.findAll();
-    }
-
-    @Override
-    public Usuario buscarPorId(Integer id) {
+    public Usuario findById(Integer id) {
         return generic.findById(id);
     }
 
     @Override
-    public Usuario autenticar(String user, String pass) {
+    public List<Usuario> findAll() {
+        return generic.findAll();
+    }
+
+    @Override
+    public Usuario findByUserAndPass(String user, String pass) {
         EntityManager em = HibernateUtil.getEntityManager();
-        TypedQuery<Usuario> q = em.createQuery(
-                "FROM Usuario u WHERE u.usuario = :u AND u.senha = :s", Usuario.class
-        );
-        q.setParameter("u", user);
-        q.setParameter("s", pass);
-        Usuario resultado = q.getResultStream().findFirst().orElse(null);
-        em.close();
-        return resultado;
+        try {
+            TypedQuery<Usuario> q = em.createQuery(
+                    "FROM Usuario u WHERE u.usuario = :u AND u.senha = :s", Usuario.class);
+            q.setParameter("u", user);
+            q.setParameter("s", pass);
+            return q.getResultStream().findFirst().orElse(null);
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            em.close();
+        }
     }
 }
