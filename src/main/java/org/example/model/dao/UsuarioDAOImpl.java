@@ -1,4 +1,3 @@
-// src/main/java/org/example/model/dao/UsuarioDAOImpl.java
 package org.example.model.dao;
 
 import jakarta.persistence.TypedQuery;
@@ -7,40 +6,82 @@ import org.example.util.HibernateUtil;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
+
 import java.util.List;
 
-/**
- * Implementação de IUsuarioDAO. Garante:
- * - registro com GenericDAO.save(...)
- * - autenticação via query
- * - catch nos blocos JPA
- */
 public class UsuarioDAOImpl implements IUsuarioDAO {
-    private final GenericDAO<Usuario, Integer> generic = new GenericDAO<>(Usuario.class);
-
     @Override
     public void save(Usuario u) {
-        generic.save(u);
+        EntityManager em = HibernateUtil.getEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        try {
+            tx.begin();
+            em.persist(u);
+            tx.commit();
+        } catch (Exception ex) {
+            if (tx.isActive()) tx.rollback();
+            throw ex;
+        } finally {
+            em.close();
+        }
     }
 
     @Override
     public void update(Usuario u) {
-        generic.update(u);
+        EntityManager em = HibernateUtil.getEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        try {
+            tx.begin();
+            em.merge(u);
+            tx.commit();
+        } catch (Exception ex) {
+            if (tx.isActive()) tx.rollback();
+            throw ex;
+        } finally {
+            em.close();
+        }
     }
 
     @Override
     public void delete(Integer id) {
-        generic.delete(id);
+        EntityManager em = HibernateUtil.getEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        try {
+            tx.begin();
+            Usuario ref = em.find(Usuario.class, id);
+            if (ref != null) {
+                em.remove(ref);
+            }
+            tx.commit();
+        } catch (Exception ex) {
+            if (tx.isActive()) tx.rollback();
+            throw ex;
+        } finally {
+            em.close();
+        }
     }
 
     @Override
     public Usuario findById(Integer id) {
-        return generic.findById(id);
+        EntityManager em = HibernateUtil.getEntityManager();
+        try {
+            return em.find(Usuario.class, id);
+        } finally {
+            em.close();
+        }
     }
 
     @Override
     public List<Usuario> findAll() {
-        return generic.findAll();
+        EntityManager em = HibernateUtil.getEntityManager();
+        try {
+            TypedQuery<Usuario> q = em.createQuery("FROM Usuario", Usuario.class);
+            return q.getResultList();
+        } catch (Exception ex) {
+            throw ex;
+        } finally {
+            em.close();
+        }
     }
 
     @Override
@@ -52,8 +93,8 @@ public class UsuarioDAOImpl implements IUsuarioDAO {
             q.setParameter("u", user);
             q.setParameter("s", pass);
             return q.getResultStream().findFirst().orElse(null);
-        } catch (Exception e) {
-            throw e;
+        } catch (Exception ex) {
+            throw ex;
         } finally {
             em.close();
         }

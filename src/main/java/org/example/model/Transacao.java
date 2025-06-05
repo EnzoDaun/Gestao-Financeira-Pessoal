@@ -1,4 +1,3 @@
-// src/main/java/org/example/model/Transacao.java
 package org.example.model;
 
 import jakarta.persistence.*;
@@ -18,7 +17,7 @@ public class Transacao {
     @Column(nullable = false)
     private LocalDate data;
 
-    @Column(nullable = false)
+    @Column(length = 255)
     private String descricao;
 
     @Column(nullable = false)
@@ -32,11 +31,15 @@ public class Transacao {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    public Transacao() { }
+    public Transacao() {
+    }
 
-    public Transacao(double valor, Categoria categoria,
-                     LocalDate data, String descricao,
-                     String tipo, Usuario usuario) {
+    public Transacao(double valor,
+                     Categoria categoria,
+                     LocalDate data,
+                     String descricao,
+                     String tipo,
+                     Usuario usuario) {
         this.valor = valor;
         this.categoria = categoria;
         this.data = data;

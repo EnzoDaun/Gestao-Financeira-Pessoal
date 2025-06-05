@@ -1,91 +1,112 @@
 // src/main/java/org/example/view/RegisterView.java
 package org.example.view;
 
-import org.example.controller.UsuarioController;
+import com.formdev.flatlaf.FlatLightLaf;
+import org.example.controller.RegisterController;
 import org.example.model.Usuario;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-public class RegisterView {
-    private final UsuarioController usuarioCtrl = new UsuarioController();
-    private JFrame frame;
+public class RegisterView extends JDialog {
+    private final RegisterController registerCtrl = new RegisterController();
+    private final JFrame parent;
 
-    public void show(JFrame parent) {
-        frame = new JFrame("Registrar Novo Usuário");
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setResizable(false);
+    public RegisterView(JFrame parent) {
+        super(parent, "Registrar Novo Usuário", true);
+        this.parent = parent;
+        initialize();
+    }
+
+    private void initialize() {
+        try {
+            UIManager.setLookAndFeel(new FlatLightLaf());
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setResizable(false);
 
         JPanel content = new JPanel();
-        content.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        content.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
         JPanel pnl = new JPanel(new GridLayout(3, 2, 5, 5));
         JTextField txtUser = new JTextField(15);
         JPasswordField txtPass = new JPasswordField(15);
         JPasswordField txtPassConf = new JPasswordField(15);
-        pnl.add(new JLabel("Usuário:"));         pnl.add(txtUser);
-        pnl.add(new JLabel("Senha:"));           pnl.add(txtPass);
-        pnl.add(new JLabel("Confirmar Senha:")); pnl.add(txtPassConf);
+        pnl.add(new JLabel("Usuário:"));
+        pnl.add(txtUser);
+        pnl.add(new JLabel("Senha:"));
+        pnl.add(txtPass);
+        pnl.add(new JLabel("Confirmar Senha:"));
+        pnl.add(txtPassConf);
         content.add(pnl);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(15));
 
         JButton btnRegister = new JButton("Registrar");
         btnRegister.setAlignmentX(Component.CENTER_ALIGNMENT);
         content.add(btnRegister);
 
-        frame.setContentPane(content);
-        frame.pack();
-        frame.setLocationRelativeTo(parent);
-        frame.setVisible(true);
+        setContentPane(content);
+        pack();
+        setLocationRelativeTo(parent);
+
+        parent.setEnabled(false);
 
         btnRegister.addActionListener(e -> {
-            String u  = txtUser.getText().trim();
-            String s  = new String(txtPass.getPassword());
-            String sc = new String(txtPassConf.getPassword());
+            String user = txtUser.getText().trim();
+            String pass = new String(txtPass.getPassword());
+            String passConf = new String(txtPassConf.getPassword());
 
-            if (u.isEmpty() || s.isEmpty() || sc.isEmpty()) {
-                JOptionPane.showMessageDialog(frame, "Preencha todos os campos!", "Erro", JOptionPane.ERROR_MESSAGE);
+            if (user.isEmpty() || pass.isEmpty() || passConf.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Preencha todos os campos!", "Erro", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            if (!s.equals(sc)) {
-                JOptionPane.showMessageDialog(frame, "Senhas não conferem!", "Erro", JOptionPane.ERROR_MESSAGE);
+            if (!pass.equals(passConf)) {
+                JOptionPane.showMessageDialog(this, "Senhas não conferem!", "Erro", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            if (!Usuario.senhaFormatoValido(s)) {
-                JOptionPane.showMessageDialog(frame, "Senha deve ter ao menos 6 caracteres!", "Erro", JOptionPane.ERROR_MESSAGE);
+            if (!Usuario.senhaFormatoValido(pass)) {
+                JOptionPane.showMessageDialog(this, "Senha deve ter ao menos 6 caracteres!", "Erro", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             btnRegister.setEnabled(false);
-            new SwingWorker<Void, Void>() {
+            SwingWorker<Void, Void> worker = new SwingWorker<>() {
                 @Override
                 protected Void doInBackground() {
-                    usuarioCtrl.registrar(u, s); // já cria a categoria “Geral”
+                    registerCtrl.registrar(user, pass);
                     return null;
                 }
+
                 @Override
                 protected void done() {
                     try {
-                        get(); // captura exceções de doInBackground
-                        JOptionPane.showMessageDialog(frame, "Registrado com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-                        frame.dispose();
-                        parent.setEnabled(true);
+                        get();
+                        JOptionPane.showMessageDialog(RegisterView.this, "Registrado com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                        dispose();
                     } catch (Exception ex) {
-                        JOptionPane.showMessageDialog(frame, "Erro ao registrar (usuário pode já existir)!", "Erro", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(RegisterView.this, "Erro ao registrar usuário: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
                         btnRegister.setEnabled(true);
                     }
                 }
-            }.execute();
+            };
+            worker.execute();
         });
 
-        frame.addWindowListener(new WindowAdapter() {
+        addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 parent.setEnabled(true);
             }
+
+            @Override
+            public void windowClosed(WindowEvent e) {
+                parent.setEnabled(true);
+            }
         });
-        parent.setEnabled(false);
     }
 }

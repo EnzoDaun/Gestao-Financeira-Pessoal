@@ -1,75 +1,134 @@
 // src/main/java/org/example/view/ResumoView.java
 package org.example.view;
 
-import org.example.controller.TransacaoController;
+import com.formdev.flatlaf.FlatLightLaf;
+import org.example.controller.TransacoesController;
 import org.example.model.Transacao;
 import org.example.model.Usuario;
+import org.example.util.ExportUtil;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.Locale;
+import java.io.File;
+import java.util.List;
 
-/**
- * Aba “Resumo” que mostra totais de receitas, despesas e saldo, com um botão para atualizar.
- */
 public class ResumoView {
     private final Usuario currentUser;
-    private final TransacaoController transacaoCtrl;
+    private final TransacoesController controller;
 
-    private JLabel lblReceitas, lblDespesas, lblTotal;
+    private JLabel lblReceitas;
+    private JLabel lblDespesas;
+    private JLabel lblSaldo;
 
-    public ResumoView(Usuario currentUser, TransacaoController transacaoCtrl) {
-        this.currentUser = currentUser;
-        this.transacaoCtrl = transacaoCtrl;
+    public ResumoView(Usuario user, TransacoesController controller) {
+        this.currentUser = user;
+        this.controller = controller;
     }
 
     public JPanel getPanel() {
-        JPanel p = new JPanel(new BorderLayout());
-        lblReceitas = new JLabel("Total Receitas: R$ 0.00");
-        lblDespesas = new JLabel("Total Despesas: R$ 0.00");
-        lblTotal    = new JLabel("Saldo Total:   R$ 0.00");
+        try {
+            UIManager.setLookAndFeel(new FlatLightLaf());
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
 
-        Font fnt = lblTotal.getFont().deriveFont(Font.BOLD, lblTotal.getFont().getSize() + 2f);
+        JPanel p = new JPanel(new BorderLayout(15, 15));
+        p.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+
+        lblReceitas = new JLabel("Total Receitas: R$ 0,00");
+        lblDespesas = new JLabel("Total Despesas: R$ 0,00");
+        lblSaldo = new JLabel("Saldo Final: R$ 0,00");
+
+        Font fnt = lblSaldo.getFont().deriveFont(Font.BOLD, 16f);
         lblReceitas.setFont(fnt);
         lblDespesas.setFont(fnt);
-        lblTotal.setFont(fnt);
+        lblSaldo.setFont(fnt);
+
+        lblReceitas.setForeground(new Color(0, 100, 0));
+        lblDespesas.setForeground(new Color(180, 0, 0));
+        lblSaldo.setForeground(new Color(0, 0, 150));
 
         JPanel info = new JPanel(new GridLayout(3, 1, 5, 5));
-        info.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         info.add(lblReceitas);
         info.add(lblDespesas);
-        info.add(lblTotal);
+        info.add(lblSaldo);
         p.add(info, BorderLayout.CENTER);
 
-        JButton btnAtual = new JButton("Atualizar Resumo");
-        btnAtual.addActionListener(e -> atualizarResumo());
-        JPanel pnl = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        pnl.add(btnAtual);
-        p.add(pnl, BorderLayout.SOUTH);
+        JPanel botoes = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
+        JButton btnExcel = new JButton("Gerar Planilha (.xlsx)");
+        JButton btnPDF = new JButton("Gerar PDF");
+        botoes.add(btnExcel);
+        botoes.add(btnPDF);
+        p.add(botoes, BorderLayout.SOUTH);
 
-        // Preenche imediatamente
+        JButton btnAtualizar = new JButton("Atualizar Resumo");
+        JPanel pnlTopo = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+        pnlTopo.add(btnAtualizar);
+        p.add(pnlTopo, BorderLayout.NORTH);
+
+        btnAtualizar.addActionListener(e -> atualizarResumo());
+
+        btnExcel.addActionListener(e -> {
+            List<Transacao> lista;
+            try {
+                lista = controller.listarPorUsuario(currentUser);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(p, "Erro ao obter transações: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            JFileChooser chooser = new JFileChooser();
+            chooser.setDialogTitle("Salvar como XLSX");
+            chooser.setSelectedFile(new File("resumo_transacoes.xlsx"));
+            int userChoice = chooser.showSaveDialog(p);
+            if (userChoice == JFileChooser.APPROVE_OPTION) {
+                try {
+                    ExportUtil.gerarPlanilhaExcel(lista, chooser.getSelectedFile().getAbsolutePath());
+                    JOptionPane.showMessageDialog(p, "Planilha gerada com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(p, "Erro ao gerar Excel: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        btnPDF.addActionListener(e -> {
+            List<Transacao> lista;
+            try {
+                lista = controller.listarPorUsuario(currentUser);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(p, "Erro ao obter transações: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            JFileChooser chooser = new JFileChooser();
+            chooser.setDialogTitle("Salvar como PDF");
+            chooser.setSelectedFile(new File("resumo_transacoes.pdf"));
+            int userChoice = chooser.showSaveDialog(p);
+            if (userChoice == JFileChooser.APPROVE_OPTION) {
+                try {
+                    ExportUtil.gerarPdf(lista, chooser.getSelectedFile().getAbsolutePath());
+                    JOptionPane.showMessageDialog(p, "PDF gerado com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(p, "Erro ao gerar PDF: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
         atualizarResumo();
         return p;
     }
 
-    private void atualizarResumo() {
-        double r = 0, d = 0;
+    public void atualizarResumo() {
+        double totalR = 0, totalD = 0;
         try {
-            for (Transacao t : transacaoCtrl.listarTodos()) {
-                if (!t.getUsuario().getId().equals(currentUser.getId())) {
-                    continue;
-                }
-                if ("Receita".equals(t.getTipo())) {
-                    r += t.getValor();
-                } else {
-                    d += t.getValor();
-                }
+            for (Transacao t : controller.listarPorUsuario(currentUser)) {
+                if ("Receita".equals(t.getTipo())) totalR += t.getValor();
+                else totalD += t.getValor();
             }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Erro ao calcular resumo: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, "Erro ao calcular resumo: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            return;
         }
-        lblReceitas.setText("Total Receitas: R$ " + String.format(Locale.forLanguageTag("pt-BR"), "%.2f", r));
-        lblDespesas.setText("Total Despesas: R$ " + String.format(Locale.forLanguageTag("pt-BR"), "%.2f", d));
-        lblTotal.setText("Saldo Total:   R$ " + String.format(Locale.forLanguageTag("pt-BR"), "%.2f", r - d));
+        lblReceitas.setText(String.format("Total Receitas: R$ %.2f", totalR));
+        lblDespesas.setText(String.format("Total Despesas:   R$ %.2f", totalD));
+        lblSaldo.setText(String.format("Saldo Final:     R$ %.2f", totalR - totalD));
     }
 }

@@ -1,12 +1,12 @@
-// src/main/java/org/example/model/Usuario.java
 package org.example.model;
 
 import jakarta.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
+
+import java.util.*;
 
 @Entity
-@Table(name = "usuario")
+@Table(name = "usuario",
+        uniqueConstraints = {@UniqueConstraint(columnNames = {"usuario"})})
 public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,12 +24,12 @@ public class Usuario {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "usuario")
     private List<Categoria> categorias = new ArrayList<>();
 
-    public Usuario() { }
+    public Usuario() {
+    }
 
     public Usuario(String usuario, String senha) {
         this.usuario = usuario;
         this.senha = senha;
-        // Cria categoria “Geral” para todo usuário ao se registrar
         this.categorias.add(new Categoria("Geral", this));
     }
 

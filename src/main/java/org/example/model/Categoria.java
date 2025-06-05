@@ -1,4 +1,3 @@
-// src/main/java/org/example/model/Categoria.java
 package org.example.model;
 
 import jakarta.persistence.*;
@@ -18,7 +17,8 @@ public class Categoria {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    public Categoria() { }
+    public Categoria() {
+    }
 
     public Categoria(String nome, Usuario usuario) {
         this.nome = nome;

@@ -5,8 +5,7 @@ import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 
 public class HibernateUtil {
-    private static final EntityManagerFactory emf =
-            Persistence.createEntityManagerFactory("gestaoPU");
+    private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("gestaoPU");
 
     public static EntityManager getEntityManager() {
         return emf.createEntityManager();
