@@ -1,5 +1,6 @@
 -Projeto feito em Java Swing com Maven;
+-SQLite - Hibernate
 -JDK: 23.0.2;
 -IDE: IntelliJ IDEA;
+-Execute o comando mvn Clean Install para instalar as dependencias
 -Para rodar a aplicação, abra o arquivo Main.Java e aperte o botão 'RUN' ou use o atalho SHIFT+f10;
--Usuário padrão: Usuario: ADMIN, Senha: ADMIN;
