@@ -1,4 +1,3 @@
-// src/main/java/org/example/view/MainView.java
 package org.example.view;
 
 import com.formdev.flatlaf.FlatLightLaf;
