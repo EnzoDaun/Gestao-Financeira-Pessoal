@@ -1,4 +1,3 @@
-// src/main/java/org/example/view/RegisterView.java
 package org.example.view;
 
 import com.formdev.flatlaf.FlatLightLaf;
