@@ -16,7 +16,6 @@ public class TransacaoDAOImpl implements ITransacaoDAO {
         EntityTransaction tx = em.getTransaction();
         try {
             tx.begin();
-            // Reatacha Categoria e Usuario antes de persistir:
             t.setCategoria(em.find(t.getCategoria().getClass(), t.getCategoria().getId()));
             t.setUsuario(em.find(t.getUsuario().getClass(), t.getUsuario().getId()));
             em.persist(t);
